@@ -1,4 +1,4 @@
-# 📚 Go Learn
+# 🎓 Go Learn
 
 This is a simple webscraper to access the api of the intranet at DTU. The intranet is using the [Desire2Learn](https://docs.valence.desire2learn.com/reference.html) API so every possible endpoint is available at their website. 
 
