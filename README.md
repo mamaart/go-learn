@@ -1,5 +1,7 @@
 # 🎓 Go Learn
 
+![GitHub](https://img.shields.io/github/license/mamaart/go-learn)
+
 This is a simple webscraper to access the api of the intranet at DTU. The intranet is using the [Desire2Learn](https://docs.valence.desire2learn.com/reference.html) API so every possible endpoint is available at their website. 
 
 > ⚠️ As a student you dont have permission to use all endpoints. 
@@ -7,6 +9,64 @@ This is a simple webscraper to access the api of the intranet at DTU. The intran
 You can use this api for automation of tasks related to your user, and if you get extra permissions from the administration you will be able to manage other users as well.
 
 Right now the webscraper is implemented as a library but later it might also get a TUI
+
+There is another par of the program as well whic can be used to get info from the old dtu inside
+
+### Examples
+
+#### Example of getting grade list from inside
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/mamaart/go-learn/pkg/inside"
+)
+
+func main() {
+	i, err := inside.New("your-username", "your-password")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	grades, err := i.GetGrades()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, e := range grades {
+		log.Println(e)
+	}
+}
+```
+
+#### Example of calling whoami on d2l
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/mamaart/go-learn/pkg/d2l"
+)
+
+func main() {
+	l, err := d2l.New("your-username", "your-password")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	r, err := l.Whoami()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println(string(r))
+}
+```
 
 ## 🛠️ Todo
 
@@ -16,4 +76,6 @@ Right now the webscraper is implemented as a library but later it might also get
 - [ ] Parse and return types from the functions.
 - [ ] Make a TUI for simple use cases
 - [ ] Make tests of all endpoints and register which are not available for students
+- [ ] What is this api defined at https://www.inside.dtu.dk/sitecore%20modules/external/arcanic/scraping.asmx
+
 
