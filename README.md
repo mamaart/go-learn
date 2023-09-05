@@ -74,8 +74,7 @@ func main() {
 - [ ] Make tests on endpoints
 - [ ] Automize implementaion of endpoints from the reference
 - [ ] Parse and return types from the functions.
-- [ ] Make a TUI for simple use cases
+- [x] Make a TUI for simple use cases
 - [ ] Make tests of all endpoints and register which are not available for students
-- [ ] What is this api defined at https://www.inside.dtu.dk/sitecore%20modules/external/arcanic/scraping.asmx
 
 
