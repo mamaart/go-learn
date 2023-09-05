@@ -27,7 +27,6 @@ func main() {
 	}
 
 	for _, e := range grades {
-
 		fmt.Println(e)
 	}
 
