@@ -1,4 +1,4 @@
-package golearn
+package d2l
 
 import (
 	"fmt"
@@ -8,21 +8,21 @@ import (
 	"github.com/mamaart/go-learn/internal/auth"
 )
 
-type Learn struct {
+type D2L struct {
 	cli *http.Client
 }
 
-func New(username, password string) (*Learn, error) {
-	cli, err := auth.Login(username, password)
+func New(username, password string) (*D2L, error) {
+	cli, err := auth.LoginToLearn(username, password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to login: %s", err)
 	}
-	return &Learn{
+	return &D2L{
 		cli: cli,
 	}, nil
 }
 
-func (d2l *Learn) get(path string) ([]byte, error) {
+func (d2l *D2L) get(path string) ([]byte, error) {
 	url := fmt.Sprintf("https://learn.inside.dtu.dk%s", path)
 	resp, err := d2l.cli.Get(url)
 	if err != nil {
@@ -36,31 +36,31 @@ func (d2l *Learn) get(path string) ([]byte, error) {
 	return x, nil
 }
 
-func (d2l *Learn) Whoami() ([]byte, error) {
+func (d2l *D2L) Whoami() ([]byte, error) {
 	return d2l.get("/d2l/api/lp/1.2/users/whoami")
 }
 
-func (d2l *Learn) GetEnrollments() ([]byte, error) {
+func (d2l *D2L) GetEnrollments() ([]byte, error) {
 	return d2l.get("/d2l/api/lp/1.2/enrollments/myenrollments")
 }
 
-func (d2l *Learn) GetNews(courseId int) ([]byte, error) {
+func (d2l *D2L) GetNews(courseId int) ([]byte, error) {
 	return d2l.get(fmt.Sprintf("/d2l/api/lp/1.4/%d/news", courseId))
 }
 
-func (d2l *Learn) Version() ([]byte, error) {
+func (d2l *D2L) Version() ([]byte, error) {
 	return d2l.get("/d2l/api/versions")
 }
 
-func (d2l *Learn) GetSchema() ([]byte, error) {
+func (d2l *D2L) GetSchema() ([]byte, error) {
 	return d2l.get("/d2l/api/lp/1.2/courses/schema")
 }
 
-func (d2l *Learn) GetOrg() ([]byte, error) {
+func (d2l *D2L) GetOrg() ([]byte, error) {
 	return d2l.get("/d2l/api/lp/1.2/organization/info")
 }
 
-func (d2l *Learn) GetForums(courseId int) ([]byte, error) {
+func (d2l *D2L) GetForums(courseId int) ([]byte, error) {
 	return d2l.get(fmt.Sprintf("/d2l/api/le/1.2/%d/discussions/forums/", courseId))
 }
 
@@ -114,7 +114,7 @@ func (d2l *Learn) GetForums(courseId int) ([]byte, error) {
 //        return self.get(f'/d2l/api/le/1.3/{course_id}/updates/myUpdates')
 //
 //    def get_grades(self, course_id):
-//        # Learn does not use grades at the moment
+//        # D2L does not use grades at the moment
 //        return self.get(f'/d2l/api/le/1.2/{course_id}/grades/')
 //
 //

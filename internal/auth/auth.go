@@ -1,80 +1,65 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/cookiejar"
-	"net/url"
 	"regexp"
+
+	"github.com/mamaart/go-learn/internal/saml"
 )
 
-func Login(username, password string) (*http.Client, error) {
-	jar, err := cookiejar.New(nil)
+func LoginToLearn(username, password string) (*http.Client, error) {
+	login, err := saml.New().GetLogin(
+		"https://learn.inside.dtu.dk/",
+		"https://learn.inside.dtu.dk/d2l/lp/auth/login/samlLogin.d2l",
+	)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
-	cli := &http.Client{
-		Jar: jar,
-	}
-
-	return cli, login(cli, username, password)
+	return login(username, password)
 }
 
-func login(cli *http.Client, username, password string) error {
-	u, err := getSAMLRequest(cli)
+func LoginToInside(username, password string) (*http.Client, error) {
+	login, err := saml.New().GetLogin(
+		"https://cn.inside.dtu.dk/",
+		"https://auth.dtu.dk/dtu/",
+	)
 	if err != nil {
-		return fmt.Errorf("failed to get SAML request: %s", err)
+		return nil, fmt.Errorf("saml flow failed: %s", err)
+	}
+	cli, err := login(username, password)
+	if err != nil {
+		return nil, fmt.Errorf("login failed: %s", err)
 	}
 
-	samlResponse, err := getSAMLResponse(cli, u, username, password)
+	resp, err := cli.Get("https://cn.inside.dtu.dk/cnnet/element/682907")
 	if err != nil {
-		return fmt.Errorf("failed to get SAML response: %s", err)
+		return nil, fmt.Errorf("failed request url that requires session cookie: %s", err)
 	}
-
-	authUrl := "https://learn.inside.dtu.dk/d2l/lp/auth/login/samlLogin.d2l"
-	_, err = cli.PostForm(authUrl, url.Values{
-		"SAMLResponse": []string{samlResponse},
-	})
+	_, _, err = follow(cli, resp)
 	if err != nil {
-		return fmt.Errorf("failed at login request: %s", err)
+		return nil, fmt.Errorf("following failed while trying to get session cookie: %s", err)
 	}
-	return nil
+	return cli, nil
 }
 
-func getSAMLRequest(cli *http.Client) (string, error) {
-	resp, err := cli.Get("https://learn.inside.dtu.dk/")
+// follow is used to get a ticket which is needed to get access to inside
+// the ticket flow happens after the user is logged in
+func follow(cli *http.Client, resp *http.Response) (*http.Response, []byte, error) {
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed at first request: %s", err)
+		return nil, nil, err
 	}
-	resp, err = cli.PostForm(resp.Request.URL.String(), url.Values{
-		"HomeRealmSelection": []string{"AD+AUTHORITY"},
-		"Email":              []string{""},
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed at second request: %s", err)
-	}
-	return resp.Request.URL.String(), nil
-}
+	re := regexp.MustCompile(`window\.location\.href='(https://[^']+)';`)
 
-func getSAMLResponse(cli *http.Client, u, username, password string) (string, error) {
-	resp, err := cli.PostForm(u, url.Values{
-		"Username":   []string{fmt.Sprintf("win\\%s", username)},
-		"Password":   []string{password},
-		"AuthMethod": []string{"FormsAuthenticate"},
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed at third request: %s", err)
+	match := re.FindSubmatch(data)
+	if len(match) > 1 {
+		resp, err := cli.Get(string(match[1]))
+		if err != nil {
+			return nil, nil, err
+		}
+		return follow(cli, resp)
 	}
-	x, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read data: %s", err)
-	}
-	match := regexp.MustCompile(`name="SAMLResponse" value="([^"]+)"`).FindSubmatch(x)
-	if len(match) != 2 {
-		return "", errors.New("didn't find SAMLResponse")
-	}
-	return string(match[1]), nil
+	return resp, data, nil
 }

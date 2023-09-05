@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/mamaart/go-learn/pkg/d2l"
+	"github.com/mamaart/go-learn/pkg/inside"
 )
 
 func main() {
@@ -16,15 +16,19 @@ func main() {
 	username := os.Args[1]
 	password := os.Args[2]
 
-	l, err := d2l.New(username, password)
+	i, err := inside.New(username, password)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	r, err := l.Whoami()
+	grades, err := i.GetGrades()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(string(r))
+	for _, e := range grades {
+
+		fmt.Println(e)
+	}
+
 }
