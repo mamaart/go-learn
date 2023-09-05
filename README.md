@@ -8,9 +8,9 @@ This is a simple webscraper to access the api of the intranet at DTU. The intran
 
 You can use this api for automation of tasks related to your user, and if you get extra permissions from the administration you will be able to manage other users as well.
 
-Right now the webscraper is implemented as a library but later it might also get a TUI
+The webscraper can be used both as a library in another application or as a command line tool
 
-There is another par of the program as well whic can be used to get info from the old dtu inside
+There is another part of the program as well whic can be used to get info from the old dtu inside
 
 ### Examples
 
