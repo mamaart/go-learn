@@ -2,32 +2,24 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"os"
 
+	"github.com/mamaart/go-learn/pkg/functools"
 	"github.com/mamaart/go-learn/pkg/inside"
 )
 
 func main() {
-	if len(os.Args) > 3 {
-		log.Fatal("username and password not provided")
-	}
+	i := functools.MustV(inside.New(inside.DefaultOptions()))
+	grades(i)
+}
 
-	username := os.Args[1]
-	password := os.Args[2]
+func grades(i *inside.Inside) {
+	fmt.Println(functools.MustV(
+		i.Grades(),
+	))
+}
 
-	i, err := inside.New(username, password)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	grades, err := i.GetGrades()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, e := range grades {
-		fmt.Println(e)
-	}
-
+func whoami(i *inside.Inside) {
+	fmt.Println(functools.MustV(
+		i.Whoami(),
+	))
 }

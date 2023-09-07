@@ -4,36 +4,59 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os/user"
 
 	"github.com/mamaart/go-learn/internal/auth"
+	"github.com/mamaart/go-learn/internal/d2l"
+	"github.com/mamaart/go-learn/pkg/functools"
 )
 
 type D2L struct {
-	cli *http.Client
+	manager *auth.AuthManager
 }
 
-func New(username, password string) (*D2L, error) {
-	cli, err := auth.LoginToLearn(username, password)
+type Options struct {
+	Credentials *auth.Credentials
+}
+
+func DefaultOptions() Options { return Options{nil} }
+
+func New(opts Options) (*D2L, error) {
+	home := functools.MustV(user.Current()).HomeDir // TODO maybe get this from options?
+	manager, err := auth.New(auth.Options{
+		Credentials:     opts.Credentials,
+		Login:           d2l.LoginToLearn,
+		CheckAuthorized: d2l.CheckAuthState,
+		CookiePath:      fmt.Sprintf("%s/.dtu_inside_cookies", home),
+		CredentialsPath: fmt.Sprintf("%s/.dtu_credentials", home),
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to login: %s", err)
+		return nil, fmt.Errorf("failed to create auth manager: %s", err)
 	}
-	return &D2L{
-		cli: cli,
-	}, nil
+
+	return &D2L{manager}, nil
 }
 
 func (d2l *D2L) get(path string) ([]byte, error) {
-	url := fmt.Sprintf("https://learn.inside.dtu.dk%s", path)
-	resp, err := d2l.cli.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("failed to do whoami: %s", err)
-	}
+	u := fmt.Sprintf("https://learn.inside.dtu.dk%s", path)
 
+	resp, err := d2l.manager.WithClient(func(cli *http.Client) (*http.Response, error) {
+		req := functools.MustV(http.NewRequest("GET", u, nil))
+		resp, err := cli.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to do whoami: %s", err)
+		}
+		return resp, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("request to %s failed: %s", u, err)
+	}
 	x, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read data: %s", err)
 	}
 	return x, nil
+
 }
 
 func (d2l *D2L) Whoami() ([]byte, error) {

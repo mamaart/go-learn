@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/cookiejar"
 	"net/url"
 	"regexp"
 )
@@ -14,37 +13,29 @@ type SAML struct {
 	cli *http.Client
 }
 
-func New() *SAML {
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		panic(err)
-	}
-	return &SAML{
-		cli: &http.Client{
-			Jar: jar,
-		},
-	}
+func New(cli *http.Client) *SAML {
+	return &SAML{cli}
 }
 
-func (s *SAML) GetLogin(initUrl, authUrl string) (func(username, password string) (*http.Client, error), error) {
+func (s *SAML) GetLogin(initUrl, authUrl string) (func(username, password string) (*http.Response, error), error) {
 	u, err := s.getSAMLRequest(initUrl)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get SAML request: %s", err)
 	}
-	return func(username, password string) (*http.Client, error) {
+	return func(username, password string) (*http.Response, error) {
 		samlResponse, err := s.getSAMLResponse(u, username, password)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get SAML response: %s", err)
 		}
 
-		_, err = s.cli.PostForm(authUrl, url.Values{
+		r, err := s.cli.PostForm(authUrl, url.Values{
 			"SAMLResponse": []string{samlResponse},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed at login request: %s", err)
 		}
 
-		return s.cli, nil
+		return r, nil
 	}, nil
 }
 
@@ -53,6 +44,16 @@ func (s *SAML) getSAMLRequest(u string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed at first request: %s", err)
 	}
+
+	saml := resp.Request.URL.Query().Get("SAMLRequest")
+	if saml == "" {
+		fmt.Println(resp.Request.URL.String())
+		//fmt.Println(string(functools.MustV(io.ReadAll(resp.Body))))
+		// Reason might be that we are already authorized
+		// TODO figure out: what to do?
+		return "", fmt.Errorf("no saml request returned")
+	}
+
 	resp, err = s.cli.PostForm(resp.Request.URL.String(), url.Values{
 		"HomeRealmSelection": []string{"AD+AUTHORITY"},
 		"Email":              []string{""},

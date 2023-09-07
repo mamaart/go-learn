@@ -25,11 +25,17 @@ import (
 	"github.com/mamaart/go-learn/pkg/inside"
 )
 
-func main() {
-	i, err := inside.New("your-username", "your-password")
+func login(username, password string) {
+	i, err := inside.New(inside.Options{
+		Credentials: &auth.Credentials{
+			Username: username,
+			Password: password,
+		},
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("logged in successfully!")
 
 	grades, err := i.GetGrades()
 	if err != nil {
@@ -70,6 +76,7 @@ func main() {
 
 ## 🛠️ Todo
 
+- [ ] Handle partial authentication problem when one or more cookies are expired. 
 - [ ] Finish implementing the endpoints from python
 - [ ] Make tests on endpoints
 - [ ] Automize implementaion of endpoints from the reference
