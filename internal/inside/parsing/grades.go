@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"regexp"
+	"strconv"
 
 	"github.com/mamaart/go-learn/internal/inside/models"
 )
@@ -56,10 +57,14 @@ func extractURL(cell string) string {
 	return ""
 }
 
-func firstDigit(cell string) string {
+func firstDigit(cell string) int {
 	match := regexp.MustCompile(`(\d+)`).FindStringSubmatch(cell)
 	if len(match) > 0 {
-		return match[0]
+		i, err := strconv.Atoi(match[0])
+		if err != nil {
+			return 0
+		}
+		return i
 	}
-	return ""
+	return 0
 }

@@ -5,8 +5,8 @@ import "encoding/json"
 type Grade struct {
 	URL      string `json:"url"`
 	Title    string `json:"title"`
-	Grade    string `json:"grade"`
-	Ects     string `json:"ects"`
+	Grade    int    `json:"grade"`
+	Ects     int    `json:"ects"`
 	Semester string `json:"semester"`
 }
 
