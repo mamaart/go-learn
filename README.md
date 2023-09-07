@@ -59,18 +59,23 @@ import (
 	"github.com/mamaart/go-learn/pkg/d2l"
 )
 
-func main() {
-	l, err := d2l.New("your-username", "your-password")
+func login(username, password string) {
+	i, err := d2l.New(inside.Options{
+		Credentials: &auth.Credentials{
+			Username: username,
+			Password: password,
+		},
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("logged in successfully!")
 
-	r, err := l.Whoami()
+	me, err := i.Whoami()
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	log.Println(string(r))
+    log.Println(me)
 }
 ```
 
