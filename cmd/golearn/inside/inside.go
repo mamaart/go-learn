@@ -23,6 +23,7 @@ func Cmd() *cobra.Command {
 	cmd.AddCommand(login())
 	cmd.AddCommand(whoami())
 	cmd.AddCommand(grades())
+	cmd.AddCommand(gpa())
 	return cmd
 }
 
@@ -84,6 +85,25 @@ func grades() *cobra.Command {
 			for _, e := range grades {
 				fmt.Println(e)
 			}
+		},
+	}
+	return cmd
+}
+
+func gpa() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "gpa",
+		Short: "get the gpa",
+		Run: func(cmd *cobra.Command, args []string) {
+			i, err := inside.New(inside.DefaultOptions())
+			if err != nil {
+				log.Fatal(err)
+			}
+			gpa, err := i.GPA()
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Printf("GPA: %d\n", gpa)
 		},
 	}
 	return cmd
