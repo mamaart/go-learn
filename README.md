@@ -75,6 +75,7 @@ func login(username, password string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
     log.Println(me)
 }
 ```
@@ -88,5 +89,5 @@ func login(username, password string) {
 - [ ] Parse and return types from the functions.
 - [x] Make a TUI for simple use cases
 - [ ] Make tests of all endpoints and register which are not available for students
-
+- [ ] Refactor authentication logic
 
