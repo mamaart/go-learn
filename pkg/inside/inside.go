@@ -43,8 +43,8 @@ func New(opts Options) (*Inside, error) {
 	return &Inside{manager}, nil
 }
 
-func (i *Inside) Get(url string) (out []byte, _ error) {
-	_, err := i.manager.WithClient(func(c *http.Client) (*http.Response, error) {
+func (i *Inside) Get(url string) (*http.Response, error) {
+	return i.manager.WithClient(func(c *http.Client) (*http.Response, error) {
 		req, _ := http.NewRequest("GET", url, nil)
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15")
 		resp, err := c.Do(req)
@@ -59,19 +59,14 @@ func (i *Inside) Get(url string) (out []byte, _ error) {
 		// wiht js location href modification.
 		if resp.Request.URL.String() != url {
 			fmt.Println("refreshing")
-			out, err = refreshSaml(c, resp)
+			_, err := refreshSaml(c, resp)
 			if err != nil {
 				return nil, err
 			}
-		} else {
-			out, err = io.ReadAll(resp.Body)
-			if err != nil {
-				return nil, err
-			}
+			return i.Get(url) //Retry
 		}
 		return resp, nil
 	})
-	return out, err
 
 }
 
@@ -84,7 +79,11 @@ func (i *Inside) Post(url string, data []byte) (*http.Response, error) {
 }
 
 func (i *Inside) Whoami() (string, error) {
-	data, err := i.Get("https://www.inside.dtu.dk/dtuapi/dtucontext/getuserorcurrent?cwis=undefined")
+	resp, err := i.Get("https://www.inside.dtu.dk/dtuapi/dtucontext/getuserorcurrent?cwis=undefined")
+	if err != nil {
+		return "", err
+	}
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -92,12 +91,41 @@ func (i *Inside) Whoami() (string, error) {
 }
 
 func (i *Inside) Grades() ([]models.Grade, error) {
-	data, err := i.Get("https://cn.inside.dtu.dk/cnnet/Grades/Grades.aspx")
+	resp, err := i.Get("https://cn.inside.dtu.dk/cnnet/Grades/Grades.aspx")
 	if err != nil {
 		return nil, fmt.Errorf("data parse failed: %s", err)
 	}
-	//fmt.Println(string(data))
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 	return parsing.ParseGradesHtml(data)
+}
+
+// TODO Check for division by zero, and validate that all grades are valid
+// meaning they have both valid ects and grade, maybe ignore the ones that
+// do not have valid info.
+func (i *Inside) GPA() (int, error) {
+	grades, err := i.Grades()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get grades: %s", err)
+	}
+	fold := func(fn func(models.Grade) int) int {
+		return functools.Foldr(grades, 0, func(g models.Grade, acc int) int {
+			if g.Grade <= 0 {
+				return 0 + acc
+			}
+			return fn(g) + acc
+		})
+	}
+	gs := fold(func(g models.Grade) int { return g.Grade * g.Ects })
+	cs := fold(func(g models.Grade) int { return g.Ects })
+
+	if cs == 0 {
+		return 0, fmt.Errorf("can't calculate because completed ectc is 0")
+	}
+
+	return gs / cs, nil
 }
 
 // TODO check how to put this inside saml package.
@@ -115,7 +143,7 @@ func refreshSaml(cli *http.Client, resp *http.Response) ([]byte, error) {
 		}
 		return data, nil //errors.New("didn't find SAMLResponse")
 	}
-	fmt.Println(match[1])
+	fmt.Println(string(match[1]))
 	// URL used here is from SAML authurl
 	resp, err = cli.PostForm("https://auth.dtu.dk/dtu/", url.Values{
 		"SAMLResponse": []string{string(match[1])},
